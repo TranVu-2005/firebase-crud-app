@@ -1,74 +1,54 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const db = require('./firebase');
+import bodyParser from "body-parser";
+import dotenv from "dotenv"; // Nạp biến môi trường từ tệp .env
+import express from "express";
+import admin from "firebase-admin";
+
+dotenv.config(); // Nạp biến môi trường từ tệp .env
 
 const app = express();
-app.use(bodyParser.json());
-
 const port = process.env.PORT || 3000;
 
+// Middleware
+app.use(bodyParser.json());
+
+// Initialize Firebase Admin SDK using environment variables
+admin.initializeApp({
+  credential: admin.credential.cert({
+    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    project_id: process.env.FIREBASE_PROJECT_ID,
+  }),
+});
+
+const db = admin.firestore();
+
+// API Routes
+app.get("/items", async (req, res) => {
+  const snapshot = await db.collection("items").get();
+  const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  res.send(items);
+});
+
+app.post("/items", async (req, res) => {
+  const newItem = req.body;
+  const addedDoc = await db.collection("items").add(newItem);
+  res.send(`New item added with ID: ${addedDoc.id}`);
+});
+
+app.put("/items/:id", async (req, res) => {
+  const id = req.params.id;
+  const updatedItem = req.body;
+  await db.collection("items").doc(id).update(updatedItem);
+  res.send(`Item with ID: ${id} has been updated`);
+});
+
+app.delete("/items/:id", async (req, res) => {
+  const id = req.params.id;
+  await db.collection("items").doc(id).delete();
+  res.send(`Item with ID: ${id} has been deleted`);
+});
+
+// Start Server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-
-//API Create new products
-app.post('/items', async (req, res) => {
-    try {
-      const data = req.body;
-      const ref = await db.collection('products').add(data);
-      res.status(201).send({ id: ref.id });
-    } catch (error) {
-      res.status(500).send(error.message);
-    }
-  });
-
-//API get product by id
-  app.get('/items/:id', async (req, res) => {
-    try {
-      const id = req.params.id;
-      const doc = await db.collection('products').doc(id).get();
-  
-      if (!doc.exists) {
-        res.status(404).send('No document found');
-      } else {
-        res.status(200).send(doc.data());
-      }
-    } catch (error) {
-      res.status(500).send(error.message);
-    }
-  });
-
-  //API get all product
-  app.get('/items', async (req, res) => {
-    try {
-      const snapshot = await db.collection('products').get();
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      res.status(200).send(items);
-    } catch (error) {
-      res.status(500).send(error.message);
-    }
-  });
-//API update by id 
-  app.put('/items/:id', async (req, res) => {
-    try {
-      const id = req.params.id;
-      const data = req.body;
-      await db.collection('products').doc(id).update(data);
-      res.status(200).send('Document successfully updated');
-    } catch (error) {
-      res.status(500).send(error.message);
-    }
-  });
-
-//API delete
-  app.delete('/items/:id', async (req, res) => {
-    try {
-      const id = req.params.id;
-      await db.collection('products').doc(id).delete();
-      res.status(200).send('Document successfully deleted');
-    } catch (error) {
-      res.status(500).send(error.message);
-    }
-  });
-  
-      

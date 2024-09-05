@@ -1,6 +1,6 @@
 // firebase.js cấu hình kết nối FileStorage
 const admin = require('firebase-admin');
-const serviceAccount = require('./my-firebase-project-16d3c-firebase-adminsdk-usyxe-fd6ecb9cd9.json');
+const serviceAccount = require('./my-firebase-project-16d3c-firebase-adminsdk-usyxe-25be3570ef.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
